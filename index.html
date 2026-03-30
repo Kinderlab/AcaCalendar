@@ -242,18 +242,16 @@ service cloud.firestore {
             }).join(', ');
         }
 
-        // 내부 로직용 4자리 연도 변환 함수 (사용자가 26을 입력해도 2026으로 내부 변환)
         function getInternalYear() {
             let val = parseInt(document.getElementById('baseYear').value);
             if (isNaN(val)) return 2026;
             return val < 100 ? 2000 + val : val;
         }
 
-        // 연도 변경 시, 해당 연도에 맞는 기본값 템플릿을 생성해주는 함수 (이전 데이터 잔류 방지 및 윤년 반영)
+        // 연도 변경 시 기본값 세팅 및 알려진 선거일 자동 주입 기능
         function setDefaultsForYear(fullYear) {
             const shortY1 = String(fullYear).substring(2);
             const shortY2 = String(fullYear + 1).substring(2);
-            // 윤년 여부를 동적으로 파악하여 2월 마지막 날짜 가져오기
             const febDays = new Date(fullYear + 1, 2, 0).getDate(); 
             
             document.getElementById('summerStart').value = `${shortY1}.07.21.`;
@@ -261,9 +259,15 @@ service cloud.firestore {
             document.getElementById('winterStart').value = `${shortY1}.12.19.`;
             document.getElementById('winterEnd').value = `${shortY2}.01.24.`;
             document.getElementById('yearEndStart').value = `${shortY2}.02.06.`;
-            document.getElementById('yearEndEnd').value = `${shortY2}.02.${febDays}.`; // 동적 윤년 반영
+            document.getElementById('yearEndEnd').value = `${shortY2}.02.${febDays}.`; 
             document.getElementById('discretionaryHolidays').value = `${shortY1}.05.04.`;
-            document.getElementById('floatingHolidays').value = "";
+            
+            // 기존 데이터가 비어있을 경우, 해당 연도의 알려진 선거일을 자동으로 세팅
+            let defaultFloating = "";
+            if (fullYear === 2026) defaultFloating = "26.06.03."; // 제9회 지방선거
+            if (fullYear === 2030) defaultFloating = "30.03.27."; // 제22대 대선 (예정)
+            
+            document.getElementById('floatingHolidays').value = defaultFloating;
             document.getElementById('enableLaborDay').checked = false;
         }
 
@@ -286,11 +290,16 @@ service cloud.firestore {
                     document.getElementById('yearEndStart').value = data.yearEndStart ? formatToDotDate(data.yearEndStart) : "";
                     document.getElementById('yearEndEnd').value = data.yearEndEnd ? formatToDotDate(data.yearEndEnd) : "";
                     document.getElementById('discretionaryHolidays').value = data.discretionaryHolidays ? formatToDotDate(data.discretionaryHolidays) : "";
-                    document.getElementById('floatingHolidays').value = data.floatingHolidays ? formatToDotDate(data.floatingHolidays) : "";
+                    
+                    // 과거에 빈 상태로 저장되었던 데이터라도 26년, 30년 선거일은 UI 상에서 강제 채워줌 (사용자 편의)
+                    let floating = data.floatingHolidays ? formatToDotDate(data.floatingHolidays) : "";
+                    if (!floating && fullYear === 2026) floating = "26.06.03.";
+                    if (!floating && fullYear === 2030) floating = "30.03.27.";
+                    document.getElementById('floatingHolidays').value = floating;
+
                     document.getElementById('enableLaborDay').checked = data.enableLaborDay || false;
                     updateSyncUI("☁️ 클라우드 동기화됨");
                 } else {
-                    // 클라우드에 해당 연도의 데이터가 없을 경우 기본값으로 덮어쓰고 저장
                     setDefaultsForYear(fullYear);
                     saveDataToCloud(); 
                 }
@@ -332,7 +341,6 @@ service cloud.firestore {
         }
 
         window.handleInputChange = function(isYearChange = false) {
-            // 사용자가 어떤 형식으로 입력하든 다른 곳을 클릭하면 즉시 YY.MM.DD. 로 화면 강제 포맷팅
             const inputsToFormat = ['summerStart', 'summerEnd', 'winterStart', 'winterEnd', 'yearEndStart', 'yearEndEnd', 'discretionaryHolidays', 'floatingHolidays'];
             inputsToFormat.forEach(id => {
                 const el = document.getElementById(id);
@@ -343,7 +351,6 @@ service cloud.firestore {
 
             if (isYearChange) {
                 const fullYear = getInternalYear();
-                // 연도 변경 시 우선 임시로 해당 연도 기본 템플릿 세팅 (클라우드 응답 전 화면 깜빡임 방지)
                 setDefaultsForYear(fullYear);
                 calculateAll();
                 subscribeToYearData(fullYear);
@@ -463,7 +470,6 @@ service cloud.firestore {
             const displayYear = document.getElementById('baseYear').value;
             const fullYear = getInternalYear(); 
             
-            // 계산 로직용: 어떠한 입력도 YYYY-MM-DD로 정확히 변환해주는 함수
             const normalizeDateForCalc = (dStr) => {
                 if (!dStr) return "";
                 let str = dStr.trim();
@@ -494,14 +500,12 @@ service cloud.firestore {
                 publicHolidaysList.push({ date: dStr, name: "임시/선거공휴일" });
             });
 
-            // 해당 학년도 범위(3월 ~ 익년 2월 말일) 밖의 날짜 엄격히 필터링 (대체공휴일 중복 표출 방지)
             const startDate = `${fullYear}-03-01`;
-            const endDay = new Date(fullYear + 1, 2, 0).getDate(); // 윤년 동적 반영된 2월의 마지막 날짜
+            const endDay = new Date(fullYear + 1, 2, 0).getDate(); 
             const endDate = `${fullYear + 1}-02-${endDay}`;
             
             publicHolidaysList = publicHolidaysList.filter(h => h.date >= startDate && h.date <= endDate);
 
-            // 우측 자동 공휴일 목록 업데이트 (화면 표시용)
             document.getElementById('displayYearText').innerText = displayYear;
             const listContainer = document.getElementById('holidayList');
             listContainer.innerHTML = '';
@@ -568,24 +572,22 @@ service cloud.firestore {
                         const isSun = (day === 0);
                         const isSat = (day === 6);
                         
-                        // 휴업일 속성 중 하나라도 참이면 실제 쉬는 날(totalOffInMonth)로 1만 증가 (중복 방지)
                         let isOff = isVac || isSun || isSat || isHoliday || isDisc;
                         if (isOff) totalOffInMonth++;
                         
-                        // 카테고리별 분배 로직 (우선순위: 방학 > 주말 > 공휴일 > 재량일)
                         if (isVac) {
                             vac_out++;
                             if (isSun) sun_in++;
                             if (isSat) sat_in++;
-                            if (isHoliday && !isSun && !isSat) hol_in++; // 방학 중 평일 공휴일
-                            if (isDisc && !isSun && !isSat) disc_in++;    // 방학 중 평일 재량일
+                            if (isHoliday && !isSun && !isSat) hol_in++; 
+                            if (isDisc && !isSun && !isSat) disc_in++;    
                         } else if (isSun) {
                             sun_out++;
                             if (isHoliday) hol_in++;
                             if (isDisc) disc_in++;
                         } else if (isSat) {
                             sat_out++;
-                            if (isHoliday) hol_in++; // 토요일 공휴일 겹침 반영
+                            if (isHoliday) hol_in++; 
                             if (isDisc) disc_in++;
                         } else if (isHoliday) {
                             hol_out++;
