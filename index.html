@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>학사일정 자동 계산기</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700&display=swap');
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f8fafc; }
+        th, td { border: 1px solid #cbd5e1; padding: 8px; text-align: center; font-size: 0.875rem; min-width: 50px; }
+        th { background-color: #f1f5f9; white-space: nowrap; }
+        .sticky-col { position: sticky; left: 0; background-color: #f1f5f9; z-index: 10; border-right: 2px solid #cbd5e1; }
+        .bg-total { background-color: #fef9c3; font-weight: bold; }
+        textarea { resize: none; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="max-w-7xl mx-auto bg-white p-6 rounded-xl shadow-lg">
+        
+        <!-- 권한 오류 발생 시 나타나는 안내 배너 (초기엔 숨김) -->
+        <div id="firebaseErrorBanner" class="hidden bg-red-50 border-l-4 border-red-500 text-red-800 p-5 mb-6 rounded shadow-sm">
+            <h3 class="font-bold text-lg flex items-center gap-2 mb-2">
+                <span>⚠️</span> Firebase 데이터베이스 권한(Permission) 오류 발생!
+            </h3>
+            <p class="text-sm mb-3">연결하신 프로젝트(<code>academic-e3e71</code>)의 데이터베이스 읽기/쓰기 권한이 막혀 있습니다.</p>
+            <div class="bg-white p-4 rounded border border-red-200">
+                <p class="font-bold text-sm mb-2 text-red-700">🛠️ 해결 방법 (1분 소요)</p>
+                <ol class="list-decimal list-inside text-sm space-y-1 mb-3">
+                    <li>Firebase 콘솔에 접속하여 <strong>Firestore Database</strong> 메뉴로 이동합니다.</li>
+                    <li>상단의 <strong>규칙(Rules)</strong> 탭을 클릭합니다.</li>
+                    <li>기존 내용을 모두 지우고 <strong>아래의 코드를 복사해서 붙여넣은 후 [게시(Publish)] 버튼</strong>을 누릅니다.</li>
+                </ol>
+                <pre class="bg-slate-800 text-green-400 p-3 rounded text-xs font-mono overflow-x-auto">rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}</pre>
+                <p class="mt-3 text-xs font-bold text-slate-600">* 규칙을 게시하고 약 1~2분 뒤에 이 페이지를 새로고침하시면 오류가 사라지고 정상 작동합니다.</p>
+            </div>
+        </div>
+
+        <!-- 헤더 영역 -->
+        <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 border-b pb-4">
+            <div>
+                <div class="flex items-center gap-3 mb-1">
+                    <h1 class="text-2xl font-bold text-slate-800">🗓️ 학사일정 자동 계산기</h1>
+                    <!-- 동기화 상태 표시기 -->
+                    <span id="syncStatus" class="text-xs bg-slate-100 text-slate-500 px-3 py-1 rounded-full border shadow-sm flex items-center gap-1">
+                        <svg class="animate-spin -ml-1 mr-1 h-3 w-3 text-slate-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" id="syncSpinner" style="display:none;">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        ☁️ 연결 준비 중...
+                    </span>
+                </div>
+                <p class="text-sm text-slate-500">클라우드 실시간 저장 및 다중 사용자 동시 작업 지원</p>
+            </div>
+            <div class="flex gap-2">
+                <input type="number" id="baseYear" value="2026" class="border-2 p-2 rounded w-24 text-center font-bold text-blue-700 focus:ring-2 focus:ring-blue-500 outline-none" onchange="handleInputChange(true)">
+                <span class="flex items-center text-slate-700 font-medium">학년도</span>
+                <button onclick="exportToExcel()" class="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-lg transition-all flex items-center gap-2 shadow-sm font-medium">
+                    📥 엑셀 다운로드
+                </button>
+            </div>
+        </div>
+
+        <!-- 1. 요약 테이블 영역 -->
+        <div class="mb-8 overflow-x-auto shadow-sm border rounded-lg">
+            <table class="w-full border-collapse" id="summaryTable">
+                <thead>
+                    <tr>
+                        <th rowspan="2" class="sticky-col">구분</th>
+                        <th colspan="7">1학기</th>
+                        <th colspan="7">2학기</th>
+                        <th rowspan="2">합계</th>
+                    </tr>
+                    <tr id="monthHeader">
+                        <!-- JS로 생성 -->
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <!-- JS로 데이터 채움 -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 2. 기본 일정 설정 영역 -->
+        <div class="bg-slate-50 p-6 rounded-xl border border-slate-200 mb-8 shadow-inner relative">
+            <h2 class="font-bold text-lg mb-4 flex items-center gap-2">
+                <span class="bg-blue-600 text-white p-1 rounded text-sm">⚙️</span> 학교 자체 일정 설정 (자동 동기화)
+            </h2>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- 방학 설정 -->
+                <div class="space-y-4">
+                    <h3 class="font-semibold text-blue-800 border-b border-blue-200 pb-1">🏖️ 방학 기간 설정</h3>
+                    <div>
+                        <label class="block text-xs font-medium mb-1 text-slate-600">여름방학</label>
+                        <div class="flex gap-1 items-center">
+                            <input type="date" id="summerStart" value="2026-07-21" onchange="handleInputChange()" class="border p-1.5 text-xs rounded w-full">
+                            <span class="text-slate-400">~</span>
+                            <input type="date" id="summerEnd" value="2026-08-31" onchange="handleInputChange()" class="border p-1.5 text-xs rounded w-full">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1 text-slate-600">겨울방학</label>
+                        <div class="flex gap-1 items-center">
+                            <input type="date" id="winterStart" value="2026-12-19" onchange="handleInputChange()" class="border p-1.5 text-xs rounded w-full">
+                            <span class="text-slate-400">~</span>
+                            <input type="date" id="winterEnd" value="2027-01-24" onchange="handleInputChange()" class="border p-1.5 text-xs rounded w-full">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1 text-slate-600">학년말 방학</label>
+                        <div class="flex gap-1 items-center">
+                            <input type="date" id="yearEndStart" value="2027-02-06" onchange="handleInputChange()" class="border p-1.5 text-xs rounded w-full">
+                            <span class="text-slate-400">~</span>
+                            <input type="date" id="yearEndEnd" value="2027-02-28" onchange="handleInputChange()" class="border p-1.5 text-xs rounded w-full">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 수동 입력 영역 -->
+                <div class="space-y-4">
+                    <div class="space-y-2">
+                        <h3 class="font-semibold text-red-700 border-b border-red-200 pb-1">🏫 학교장 재량휴업일</h3>
+                        <label class="block text-xs text-slate-500 mb-1 h-8 leading-tight">
+                            개교기념일 등 학교 자체 휴업일<br>(쉼표로 구분: YYYY-MM-DD)
+                        </label>
+                        <textarea id="discretionaryHolidays" onchange="handleInputChange()" 
+                                  class="w-full border p-2 text-xs rounded-lg h-20 focus:ring-2 focus:ring-red-300 outline-none" 
+                                  placeholder="예: 2026-05-04">2026-05-04</textarea>
+                    </div>
+
+                    <div class="space-y-2">
+                        <h3 class="font-semibold text-purple-700 border-b border-purple-200 pb-1">⚡ 임시공휴일 (필요시)</h3>
+                        <label class="block text-xs text-slate-500 mb-1 h-8 leading-tight">
+                            국가 지정 임시 휴일<br>(평소엔 비워두셔도 됩니다)
+                        </label>
+                        <textarea id="floatingHolidays" onchange="handleInputChange()" 
+                                  class="w-full border p-2 text-xs rounded-lg h-20 focus:ring-2 focus:ring-purple-300 outline-none" 
+                                  placeholder="국가 지정 임시공휴일 발생 시 입력"></textarea>
+                    </div>
+                </div>
+
+                <!-- 자동 공휴일 목록 영역 -->
+                <div class="space-y-2 flex flex-col">
+                    <h3 class="font-semibold text-green-700 border-b border-green-200 pb-1">📅 <span id="displayYearText"></span>학년도 법정 공휴일</h3>
+                    <label class="block text-xs text-slate-500 mb-1 h-8 leading-tight">
+                        자동 계산되는 공휴일 및 대체휴일<br>(해당 학년도 3월 ~ 익년 2월)
+                    </label>
+                    <div id="holidayList" class="bg-white border p-3 rounded-lg flex-1 min-h-[180px] max-h-[220px] overflow-y-auto text-xs text-slate-700 space-y-1 shadow-inner">
+                        <!-- JS로 채워짐 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK 연동 -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        let db, auth, appId, currentUser;
+        let unsubscribeSnapshot = null;
+        const syncStatusEl = document.getElementById('syncStatus');
+        const errorBanner = document.getElementById('firebaseErrorBanner');
+
+        // 상태 표시 UI 업데이트
+        function updateSyncUI(status, showSpinner = false) {
+            syncStatusEl.innerHTML = showSpinner 
+                ? `<svg class="animate-spin -ml-1 mr-1 h-3 w-3 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span class="text-blue-600 font-bold">${status}</span>`
+                : `${status}`;
+            
+            if (!showSpinner) {
+                syncStatusEl.className = status.includes("오류") || status.includes("실패")
+                    ? "text-xs bg-red-50 text-red-600 px-3 py-1 rounded-full border border-red-200 shadow-sm flex items-center gap-1"
+                    : "text-xs bg-green-50 text-green-700 px-3 py-1 rounded-full border border-green-200 shadow-sm flex items-center gap-1";
+            } else {
+                syncStatusEl.className = "text-xs bg-blue-50 text-blue-700 px-3 py-1 rounded-full border border-blue-200 shadow-sm flex items-center gap-1";
+            }
+        }
+
+        // Firebase 권한 오류 처리 함수
+        function handlePermissionError(error) {
+            console.error("Firebase 권한 오류 상세:", error);
+            if (error.code === 'permission-denied' || (error.message && error.message.includes('Missing or insufficient permissions'))) {
+                errorBanner.classList.remove('hidden'); // 권한 오류 안내창 표시
+                updateSyncUI("⚠️ 권한 오류 (규칙 확인 필요)");
+            } else {
+                updateSyncUI("⚠️ 서버 연결 오류");
+            }
+        }
+
+        try {
+            // 사용자 제공 Firebase 설정
+            const firebaseConfig = {
+                apiKey: "AIzaSyAKz0PWw_M6vZu0fD2WvucAER-yiYNvYUg",
+                authDomain: "academic-e3e71.firebaseapp.com",
+                projectId: "academic-e3e71",
+                storageBucket: "academic-e3e71.firebasestorage.app",
+                messagingSenderId: "110871708388",
+                appId: "1:110871708388:web:68dd1e485eb87d921e62f1",
+                measurementId: "G-8CFHVJB8P8"
+            };
+            const app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+            appId = "academic-e3e71";
+        } catch(e) {
+            console.warn("Firebase 초기화 오류:", e);
+            updateSyncUI("⚠️ 로컬 전용 모드");
+        }
+
+        // 데이터 구독 (Read)
+        function subscribeToYearData(year) {
+            if (!currentUser) return;
+            if (unsubscribeSnapshot) unsubscribeSnapshot();
+
+            updateSyncUI("데이터 불러오는 중...", true);
+            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'academic_years', String(year));
+            
+            unsubscribeSnapshot = onSnapshot(docRef, (docSnap) => {
+                errorBanner.classList.add('hidden'); // 성공 시 에러 배너 숨김
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    document.getElementById('summerStart').value = data.summerStart || "";
+                    document.getElementById('summerEnd').value = data.summerEnd || "";
+                    document.getElementById('winterStart').value = data.winterStart || "";
+                    document.getElementById('winterEnd').value = data.winterEnd || "";
+                    document.getElementById('yearEndStart').value = data.yearEndStart || "";
+                    document.getElementById('yearEndEnd').value = data.yearEndEnd || "";
+                    document.getElementById('discretionaryHolidays').value = data.discretionaryHolidays || "";
+                    document.getElementById('floatingHolidays').value = data.floatingHolidays || "";
+                    updateSyncUI("☁️ 클라우드 동기화됨");
+                } else {
+                    saveDataToCloud(); 
+                }
+                calculateAll();
+            }, (error) => {
+                handlePermissionError(error);
+            });
+        }
+
+        // 데이터 저장 (Write)
+        function saveDataToCloud() {
+            if (!currentUser) return;
+            const year = document.getElementById('baseYear').value;
+            
+            const dataToSave = {
+                summerStart: document.getElementById('summerStart').value,
+                summerEnd: document.getElementById('summerEnd').value,
+                winterStart: document.getElementById('winterStart').value,
+                winterEnd: document.getElementById('winterEnd').value,
+                yearEndStart: document.getElementById('yearEndStart').value,
+                yearEndEnd: document.getElementById('yearEndEnd').value,
+                discretionaryHolidays: document.getElementById('discretionaryHolidays').value,
+                floatingHolidays: document.getElementById('floatingHolidays').value,
+                lastUpdated: new Date().toISOString()
+            };
+
+            updateSyncUI("저장 중...", true);
+            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'academic_years', String(year));
+            
+            setDoc(docRef, dataToSave, { merge: true })
+                .then(() => {
+                    errorBanner.classList.add('hidden');
+                    updateSyncUI("☁️ 저장 완료");
+                })
+                .catch(error => {
+                    handlePermissionError(error);
+                });
+        }
+
+        window.handleInputChange = function(isYearChange = false) {
+            calculateAll();
+            if (isYearChange) {
+                const year = document.getElementById('baseYear').value;
+                subscribeToYearData(year);
+            } else {
+                saveDataToCloud();
+            }
+        };
+
+        // ==========================================
+        // 기존 달력 계산 로직
+        // ==========================================
+        const months1 = [3, 4, 5, 6, 7, 8];
+        const months2 = [9, 10, 11, 12, 1, 2];
+
+        const formatCount = (outCount, inCount) => {
+            if (outCount === 0 && inCount === 0) return "0";
+            if (outCount === 0 && inCount > 0) return `(${inCount})`;
+            if (outCount > 0 && inCount > 0) return `${outCount}(${inCount})`;
+            return `${outCount}`;
+        };
+
+        const lunarAndElectionDB = {
+            2024: [
+                { date: "2024-02-09", name: "설연휴" }, { date: "2024-02-10", name: "설날" }, { date: "2024-02-11", name: "설연휴" }, { date: "2024-02-12", name: "대체공휴일(설날)" },
+                { date: "2024-04-10", name: "국회의원선거" }, { date: "2024-05-15", name: "부처님오신날" },
+                { date: "2024-09-16", name: "추석연휴" }, { date: "2024-09-17", name: "추석" }, { date: "2024-09-18", name: "추석연휴" }
+            ],
+            2025: [
+                { date: "2025-01-28", name: "설연휴" }, { date: "2025-01-29", name: "설날" }, { date: "2025-01-30", name: "설연휴" },
+                { date: "2025-05-05", name: "부처님오신날" }, { date: "2025-05-06", name: "대체공휴일(부처님오신날)" },
+                { date: "2025-10-05", name: "추석연휴" }, { date: "2025-10-06", name: "추석" }, { date: "2025-10-07", name: "추석연휴" }, { date: "2025-10-08", name: "대체공휴일(추석)" }
+            ],
+            2026: [
+                { date: "2026-02-16", name: "설연휴" }, { date: "2026-02-17", name: "설날" }, { date: "2026-02-18", name: "설연휴" },
+                { date: "2026-05-24", name: "부처님오신날" }, { date: "2026-05-25", name: "대체공휴일(부처님오신날)" }, { date: "2026-06-03", name: "지방선거일" },
+                { date: "2026-09-24", name: "추석연휴" }, { date: "2026-09-25", name: "추석" }, { date: "2026-09-26", name: "추석연휴" }
+            ],
+            2027: [
+                { date: "2027-02-06", name: "설연휴" }, { date: "2027-02-07", name: "설날" }, { date: "2027-02-08", name: "설연휴" }, { date: "2027-02-09", name: "대체공휴일(설날)" },
+                { date: "2027-03-03", name: "대통령선거" }, { date: "2027-05-13", name: "부처님오신날" },
+                { date: "2027-09-14", name: "추석연휴" }, { date: "2027-09-15", name: "추석" }, { date: "2027-09-16", name: "추석연휴" }
+            ],
+            2028: [
+                { date: "2028-01-26", name: "설연휴" }, { date: "2028-01-27", name: "설날" }, { date: "2028-01-28", name: "설연휴" },
+                { date: "2028-04-12", name: "국회의원선거" }, { date: "2028-05-02", name: "부처님오신날" },
+                { date: "2028-10-02", name: "추석연휴" }, { date: "2028-10-03", name: "추석" }, { date: "2028-10-04", name: "추석연휴" }, { date: "2028-10-05", name: "대체공휴일(추석)" }
+            ],
+            2029: [
+                { date: "2029-02-12", name: "설연휴" }, { date: "2029-02-13", name: "설날" }, { date: "2029-02-14", name: "설연휴" },
+                { date: "2029-05-20", name: "부처님오신날" }, { date: "2029-05-21", name: "대체공휴일(부처님오신날)" },
+                { date: "2029-09-21", name: "추석연휴" }, { date: "2029-09-22", name: "추석" }, { date: "2029-09-23", name: "추석연휴" }, { date: "2029-09-24", name: "대체공휴일(추석)" }
+            ],
+            2030: [
+                { date: "2030-02-02", name: "설연휴" }, { date: "2030-02-03", name: "설날" }, { date: "2030-02-04", name: "설연휴" }, { date: "2030-02-05", name: "대체공휴일(설날)" },
+                { date: "2030-05-09", name: "부처님오신날" }, { date: "2030-06-12", name: "지방선거일" },
+                { date: "2030-09-11", name: "추석연휴" }, { date: "2030-09-12", name: "추석" }, { date: "2030-09-13", name: "추석연휴" }
+            ],
+            2031: [
+                { date: "2031-01-22", name: "설연휴" }, { date: "2031-01-23", name: "설날" }, { date: "2031-01-24", name: "설연휴" },
+                { date: "2031-05-28", name: "부처님오신날" },
+                { date: "2031-09-30", name: "추석연휴" }, { date: "2031-10-01", name: "추석" }, { date: "2031-10-02", name: "추석연휴" }
+            ],
+            2032: [
+                { date: "2032-02-10", name: "설연휴" }, { date: "2032-02-11", name: "설날" }, { date: "2032-02-12", name: "설연휴" },
+                { date: "2032-05-16", name: "부처님오신날" }, { date: "2032-05-17", name: "대체공휴일(부처님오신날)" },
+                { date: "2032-09-18", name: "추석연휴" }, { date: "2032-09-19", name: "추석" }, { date: "2032-09-20", name: "추석연휴" }, { date: "2032-09-21", name: "대체공휴일(추석)" }
+            ]
+        };
+
+        function getSolarHolidays(year) {
+            let holidays = [];
+            
+            const rules = [
+                { m: 1, d: 1, name: "신정", sub: false },
+                { m: 3, d: 1, name: "삼일절", sub: true },
+                { m: 5, d: 5, name: "어린이날", sub: true },
+                { m: 6, d: 6, name: "현충일", sub: false },
+                { m: 8, d: 15, name: "광복절", sub: true },
+                { m: 10, d: 3, name: "개천절", sub: true },
+                { m: 10, d: 9, name: "한글날", sub: true },
+                { m: 12, d: 25, name: "성탄절", sub: true }
+            ];
+
+            const yearsToCalculate = [year, year + 1];
+
+            yearsToCalculate.forEach(y => {
+                let currentRules = [...rules];
+                if (y >= 2026) currentRules.push({ m: 7, d: 17, name: "제헌절", sub: true });
+
+                currentRules.forEach(rule => {
+                    const dateStr = `${y}-${String(rule.m).padStart(2, '0')}-${String(rule.d).padStart(2, '0')}`;
+                    holidays.push({ date: dateStr, name: rule.name });
+
+                    if (rule.sub) {
+                        const dateObj = new Date(y, rule.m - 1, rule.d);
+                        const day = dateObj.getDay();
+                        if (day === 0 || day === 6) { 
+                            let subDate = new Date(dateObj);
+                            subDate.setDate(subDate.getDate() + (day === 6 ? 2 : 1)); 
+                            const subStr = `${subDate.getFullYear()}-${String(subDate.getMonth() + 1).padStart(2, '0')}-${String(subDate.getDate()).padStart(2, '0')}`;
+                            holidays.push({ date: subStr, name: `대체공휴일(${rule.name})` });
+                        }
+                    }
+                });
+                
+                if (lunarAndElectionDB[y]) {
+                    holidays = holidays.concat(lunarAndElectionDB[y]);
+                }
+            });
+
+            return holidays;
+        }
+
+        window.calculateAll = function() {
+            const year = parseInt(document.getElementById('baseYear').value);
+            const summerStart = document.getElementById('summerStart').value;
+            const summerEnd = document.getElementById('summerEnd').value;
+            const winterStart = document.getElementById('winterStart').value;
+            const winterEnd = document.getElementById('winterEnd').value;
+            const yearEndStart = document.getElementById('yearEndStart').value;
+            const yearEndEnd = document.getElementById('yearEndEnd').value;
+            
+            const floating = document.getElementById('floatingHolidays').value.split(',').map(d => d.trim()).filter(d => d);
+            const discretionary = document.getElementById('discretionaryHolidays').value.split(',').map(d => d.trim()).filter(d => d);
+            
+            const autoHolidays = getSolarHolidays(year);
+            const publicHolidaysList = [...autoHolidays];
+            floating.forEach(dStr => {
+                publicHolidaysList.push({ date: dStr, name: "임시공휴일" });
+            });
+
+            // 우측 자동 공휴일 목록 업데이트
+            document.getElementById('displayYearText').innerText = year;
+            const listContainer = document.getElementById('holidayList');
+            listContainer.innerHTML = '';
+            const startDate = `${year}-03-01`;
+            const endDate = `${year + 1}-02-29`;
+            
+            const filteredHolidays = autoHolidays
+                .filter(h => h.date >= startDate && h.date <= endDate)
+                .sort((a, b) => a.date.localeCompare(b.date));
+
+            filteredHolidays.forEach(h => {
+                const item = document.createElement('div');
+                item.className = "flex justify-between items-center border-b border-slate-50 py-1";
+                item.innerHTML = `<span class="font-medium tracking-tight text-slate-600">${h.date}</span> <span class="text-slate-500 truncate ml-2">${h.name}</span>`;
+                listContainer.appendChild(item);
+            });
+
+            monthHeader.innerHTML = '';
+            const renderMonthHeads = (months) => {
+                months.forEach(m => {
+                    const th = document.createElement('th');
+                    th.innerText = `${m}월`;
+                    monthHeader.appendChild(th);
+                });
+                const thSub = document.createElement('th');
+                thSub.innerText = `소계`;
+                thSub.className = "bg-slate-200 font-bold";
+                monthHeader.appendChild(thSub);
+            };
+            renderMonthHeads(months1);
+            renderMonthHeads(months2);
+
+            const dataRows = {
+                totalDays: { label: "일수", s1: [], s2: [], s1Sum: 0, s2Sum: 0 },
+                sundays: { label: "일요일", s1: [], s2: [], s1OutSum: 0, s1InSum: 0, s2OutSum: 0, s2InSum: 0 },
+                saturdays: { label: "토요일", s1: [], s2: [], s1OutSum: 0, s1InSum: 0, s2OutSum: 0, s2InSum: 0 },
+                holidays: { label: "공휴일/대체공휴일", s1: [], s2: [], s1OutSum: 0, s1InSum: 0, s2OutSum: 0, s2InSum: 0 },
+                discretionary: { label: "재량휴업일", s1: [], s2: [], s1OutSum: 0, s1InSum: 0, s2OutSum: 0, s2InSum: 0 },
+                vacation: { label: "방학", s1: [], s2: [], s1Sum: 0, s2Sum: 0 },
+                totalOff: { label: "휴업일수 계", s1: [], s2: [], s1Sum: 0, s2Sum: 0 },
+                schoolDays: { label: "수업일수", s1: [], s2: [], s1Sum: 0, s2Sum: 0 }
+            };
+
+            const processSemester = (months, key) => {
+                months.forEach(m => {
+                    const currYear = (m <= 2) ? year + 1 : year;
+                    const daysInMonth = new Date(currYear, m, 0).getDate();
+                    
+                    let sun_out = 0, sun_in = 0;
+                    let sat_out = 0, sat_in = 0;
+                    let hol_out = 0, hol_in = 0;
+                    let disc_out = 0, disc_in = 0;
+                    let vac_out = 0;
+
+                    for (let d = 1; d <= daysInMonth; d++) {
+                        const dateStr = `${currYear}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                        const day = new Date(currYear, m - 1, d).getDay();
+
+                        const isHoliday = publicHolidaysList.some(h => h.date === dateStr);
+                        const isDisc = discretionary.includes(dateStr);
+                        const isVac = (dateStr >= summerStart && dateStr <= summerEnd) ||
+                                      (dateStr >= winterStart && dateStr <= winterEnd) ||
+                                      (dateStr >= yearEndStart && dateStr <= yearEndEnd);
+
+                        const isSun = (day === 0);
+                        const isSat = (day === 6);
+                        
+                        if (isVac) {
+                            vac_out++;
+                            if (isSun) {
+                                sun_in++;
+                            } else if (isSat) {
+                                sat_in++;
+                            } else {
+                                if (isHoliday) hol_in++;
+                                if (isDisc) disc_in++;
+                            }
+                        } else {
+                            if (isSun) {
+                                sun_out++;
+                                if (isHoliday || isDisc) sun_in++;
+                            } else if (isSat) {
+                                sat_out++;
+                                if (isHoliday || isDisc) sat_in++;
+                            } else {
+                                if (isHoliday) {
+                                    hol_out++;
+                                } else if (isDisc) {
+                                    disc_out++;
+                                }
+                            }
+                        }
+                    }
+
+                    const totalOffInMonth = vac_out + sun_out + sat_out + hol_out + disc_out;
+                    const schoolDays = daysInMonth - totalOffInMonth;
+
+                    dataRows.totalDays[key].push(daysInMonth);
+                    dataRows.sundays[key].push(formatCount(sun_out, sun_in));
+                    dataRows.saturdays[key].push(formatCount(sat_out, sat_in));
+                    dataRows.holidays[key].push(formatCount(hol_out, hol_in));
+                    dataRows.discretionary[key].push(formatCount(disc_out, disc_in));
+                    dataRows.vacation[key].push(formatCount(vac_out, 0));
+                    dataRows.totalOff[key].push(totalOffInMonth);
+                    dataRows.schoolDays[key].push(schoolDays);
+
+                    dataRows.totalDays[key + 'Sum'] += daysInMonth;
+                    dataRows.sundays[key + 'OutSum'] += sun_out;
+                    dataRows.sundays[key + 'InSum'] += sun_in;
+                    dataRows.saturdays[key + 'OutSum'] += sat_out;
+                    dataRows.saturdays[key + 'InSum'] += sat_in;
+                    dataRows.holidays[key + 'OutSum'] += hol_out;
+                    dataRows.holidays[key + 'InSum'] += hol_in;
+                    dataRows.discretionary[key + 'OutSum'] += disc_out;
+                    dataRows.discretionary[key + 'InSum'] += disc_in;
+                    dataRows.vacation[key + 'Sum'] += vac_out;
+                    dataRows.totalOff[key + 'Sum'] += totalOffInMonth;
+                    dataRows.schoolDays[key + 'Sum'] += schoolDays;
+                });
+            };
+
+            processSemester(months1, 's1');
+            processSemester(months2, 's2');
+
+            tableBody.innerHTML = '';
+            Object.keys(dataRows).forEach(key => {
+                const row = dataRows[key];
+                const tr = document.createElement('tr');
+                if (key === 'totalOff') tr.className = "bg-total";
+                
+                const tdLabel = document.createElement('td');
+                tdLabel.innerText = row.label;
+                tdLabel.className = "sticky-col font-bold";
+                tr.appendChild(tdLabel);
+
+                row.s1.forEach(val => {
+                    const td = document.createElement('td');
+                    td.innerText = val;
+                    tr.appendChild(td);
+                });
+                const tdS1Sum = document.createElement('td');
+                if (row.s1OutSum !== undefined) {
+                    tdS1Sum.innerText = formatCount(row.s1OutSum, row.s1InSum);
+                } else {
+                    tdS1Sum.innerText = row.s1Sum;
+                }
+                tdS1Sum.className = (key === 'totalOff') ? "bg-yellow-200 font-bold" : "bg-slate-100 font-bold";
+                tr.appendChild(tdS1Sum);
+
+                row.s2.forEach(val => {
+                    const td = document.createElement('td');
+                    td.innerText = val;
+                    tr.appendChild(td);
+                });
+                const tdS2Sum = document.createElement('td');
+                if (row.s2OutSum !== undefined) {
+                    tdS2Sum.innerText = formatCount(row.s2OutSum, row.s2InSum);
+                } else {
+                    tdS2Sum.innerText = row.s2Sum;
+                }
+                tdS2Sum.className = (key === 'totalOff') ? "bg-yellow-200 font-bold" : "bg-slate-100 font-bold";
+                tr.appendChild(tdS2Sum);
+
+                const tdTotal = document.createElement('td');
+                if (row.s1OutSum !== undefined) {
+                    const totalOut = row.s1OutSum + row.s2OutSum;
+                    const totalIn = row.s1InSum + row.s2InSum;
+                    tdTotal.innerText = formatCount(totalOut, totalIn);
+                } else {
+                    tdTotal.innerText = row.s1Sum + row.s2Sum;
+                }
+                tdTotal.className = (key === 'schoolDays' || key === 'totalOff') ? "bg-yellow-300 font-bold text-lg" : "bg-yellow-100 font-bold";
+                tr.appendChild(tdTotal);
+
+                tableBody.appendChild(tr);
+            });
+        };
+
+        window.exportToExcel = function() {
+            const table = document.getElementById('summaryTable');
+            const wb = XLSX.utils.table_to_book(table, { sheet: "학사일정통계" });
+            const year = document.getElementById('baseYear').value;
+            XLSX.writeFile(wb, `${year}학년도_학사일정_자동산출.xlsx`);
+        };
+
+        window.onload = async () => {
+            calculateAll();
+            
+            if (auth) {
+                try {
+                    await signInAnonymously(auth); // 익명 로그인 필수 진행
+                    onAuthStateChanged(auth, (user) => {
+                        if (user) {
+                            currentUser = user;
+                            const initialYear = document.getElementById('baseYear').value;
+                            subscribeToYearData(initialYear);
+                        } else {
+                            currentUser = null;
+                        }
+                    });
+                } catch(error) {
+                    console.error("인증 실패:", error);
+                    updateSyncUI("⚠️ Firebase 로그인 오류 (인증 설정 확인)");
+                }
+            }
+        };
+    </script>
+</body>
+</html>
