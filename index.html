@@ -102,59 +102,70 @@ service cloud.firestore {
                     <div>
                         <label class="block text-xs font-medium mb-1 text-slate-600">여름방학</label>
                         <div class="flex gap-1 items-center">
-                            <input type="date" id="summerStart" value="2026-07-21" onchange="handleInputChange()" class="border p-1.5 text-xs rounded w-full">
+                            <input type="text" id="summerStart" value="26.07.21." placeholder="YY.MM.DD." maxlength="12" onchange="handleInputChange()" class="border p-1.5 text-xs rounded w-full text-center focus:ring-2 focus:ring-blue-300 outline-none">
                             <span class="text-slate-400">~</span>
-                            <input type="date" id="summerEnd" value="2026-08-31" onchange="handleInputChange()" class="border p-1.5 text-xs rounded w-full">
+                            <input type="text" id="summerEnd" value="26.08.31." placeholder="YY.MM.DD." maxlength="12" onchange="handleInputChange()" class="border p-1.5 text-xs rounded w-full text-center focus:ring-2 focus:ring-blue-300 outline-none">
                         </div>
                     </div>
                     <div>
                         <label class="block text-xs font-medium mb-1 text-slate-600">겨울방학</label>
                         <div class="flex gap-1 items-center">
-                            <input type="date" id="winterStart" value="2026-12-19" onchange="handleInputChange()" class="border p-1.5 text-xs rounded w-full">
+                            <input type="text" id="winterStart" value="26.12.19." placeholder="YY.MM.DD." maxlength="12" onchange="handleInputChange()" class="border p-1.5 text-xs rounded w-full text-center focus:ring-2 focus:ring-blue-300 outline-none">
                             <span class="text-slate-400">~</span>
-                            <input type="date" id="winterEnd" value="2027-01-24" onchange="handleInputChange()" class="border p-1.5 text-xs rounded w-full">
+                            <input type="text" id="winterEnd" value="27.01.24." placeholder="YY.MM.DD." maxlength="12" onchange="handleInputChange()" class="border p-1.5 text-xs rounded w-full text-center focus:ring-2 focus:ring-blue-300 outline-none">
                         </div>
                     </div>
                     <div>
                         <label class="block text-xs font-medium mb-1 text-slate-600">학년말 방학</label>
                         <div class="flex gap-1 items-center">
-                            <input type="date" id="yearEndStart" value="2027-02-06" onchange="handleInputChange()" class="border p-1.5 text-xs rounded w-full">
+                            <input type="text" id="yearEndStart" value="27.02.06." placeholder="YY.MM.DD." maxlength="12" onchange="handleInputChange()" class="border p-1.5 text-xs rounded w-full text-center focus:ring-2 focus:ring-blue-300 outline-none">
                             <span class="text-slate-400">~</span>
-                            <input type="date" id="yearEndEnd" value="2027-02-28" onchange="handleInputChange()" class="border p-1.5 text-xs rounded w-full">
+                            <input type="text" id="yearEndEnd" value="27.02.28." placeholder="YY.MM.DD." maxlength="12" onchange="handleInputChange()" class="border p-1.5 text-xs rounded w-full text-center focus:ring-2 focus:ring-blue-300 outline-none">
                         </div>
                     </div>
                 </div>
 
                 <!-- 수동 입력 영역 -->
-                <div class="space-y-4">
-                    <div class="space-y-2">
-                        <h3 class="font-semibold text-red-700 border-b border-red-200 pb-1">🏫 학교장 재량휴업일</h3>
-                        <label class="block text-xs text-slate-500 mb-1 h-8 leading-tight">
-                            개교기념일 등 학교 자체 휴업일<br>(쉼표로 구분: YYYY-MM-DD)
-                        </label>
-                        <textarea id="discretionaryHolidays" onchange="handleInputChange()" 
-                                  class="w-full border p-2 text-xs rounded-lg h-20 focus:ring-2 focus:ring-red-300 outline-none" 
-                                  placeholder="예: 2026-05-04">2026-05-04</textarea>
+                <div class="space-y-4 flex flex-col justify-between">
+                    <div>
+                        <div class="space-y-2 mb-4">
+                            <h3 class="font-semibold text-red-700 border-b border-red-200 pb-1">🏫 학교장 재량휴업일</h3>
+                            <label class="block text-xs text-slate-500 mb-1 h-8 leading-tight">
+                                개교기념일 등 학교 자체 휴업일<br>(쉼표 구분: YY.MM.DD.)
+                            </label>
+                            <textarea id="discretionaryHolidays" onchange="handleInputChange()" 
+                                      class="w-full border p-2 text-xs rounded-lg h-20 focus:ring-2 focus:ring-red-300 outline-none" 
+                                      placeholder="예: 26.05.04.">26.05.04.</textarea>
+                        </div>
+
+                        <div class="space-y-2">
+                            <h3 class="font-semibold text-purple-700 border-b border-purple-200 pb-1">⚡ 임시공휴일 및 선거일</h3>
+                            <label class="block text-xs text-slate-500 mb-1 h-8 leading-tight">
+                                선거일, 국가 지정 임시 휴일 등<br>(쉼표 구분: YY.MM.DD.)
+                            </label>
+                            <textarea id="floatingHolidays" onchange="handleInputChange()" 
+                                      class="w-full border p-2 text-xs rounded-lg h-20 focus:ring-2 focus:ring-purple-300 outline-none" 
+                                      placeholder="예: 26.06.03."></textarea>
+                        </div>
                     </div>
 
-                    <div class="space-y-2">
-                        <h3 class="font-semibold text-purple-700 border-b border-purple-200 pb-1">⚡ 임시공휴일 (필요시)</h3>
-                        <label class="block text-xs text-slate-500 mb-1 h-8 leading-tight">
-                            국가 지정 임시 휴일<br>(평소엔 비워두셔도 됩니다)
-                        </label>
-                        <textarea id="floatingHolidays" onchange="handleInputChange()" 
-                                  class="w-full border p-2 text-xs rounded-lg h-20 focus:ring-2 focus:ring-purple-300 outline-none" 
-                                  placeholder="국가 지정 임시공휴일 발생 시 입력"></textarea>
+                    <!-- 노동절(5/1) 법정공휴일 자동 적용 토글 -->
+                    <div class="bg-blue-50/50 border border-blue-100 p-3 rounded-lg flex items-start gap-3 mt-2 shadow-sm transition-colors hover:bg-blue-50">
+                        <input type="checkbox" id="enableLaborDay" onchange="handleInputChange()" class="mt-0.5 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer">
+                        <div>
+                            <label for="enableLaborDay" class="text-sm font-bold text-blue-800 cursor-pointer select-none block">5월 1일 노동절 법정공휴일 적용</label>
+                            <p class="text-xs text-slate-500 mt-1 leading-relaxed">추후 관련 법안 통과 시 체크하시면 매년 5월 1일이 달력에 자동 반영됩니다. (대체공휴일 포함)</p>
+                        </div>
                     </div>
                 </div>
 
                 <!-- 자동 공휴일 목록 영역 -->
-                <div class="space-y-2 flex flex-col">
+                <div class="space-y-2 flex flex-col h-full">
                     <h3 class="font-semibold text-green-700 border-b border-green-200 pb-1">📅 <span id="displayYearText"></span>학년도 법정 공휴일</h3>
                     <label class="block text-xs text-slate-500 mb-1 h-8 leading-tight">
                         자동 계산되는 공휴일 및 대체휴일<br>(해당 학년도 3월 ~ 익년 2월)
                     </label>
-                    <div id="holidayList" class="bg-white border p-3 rounded-lg flex-1 min-h-[180px] max-h-[220px] overflow-y-auto text-xs text-slate-700 space-y-1 shadow-inner">
+                    <div id="holidayList" class="bg-white border p-3 rounded-lg flex-1 min-h-[180px] max-h-[300px] overflow-y-auto text-xs text-slate-700 space-y-1 shadow-inner">
                         <!-- JS로 채워짐 -->
                     </div>
                 </div>
@@ -188,11 +199,10 @@ service cloud.firestore {
             }
         }
 
-        // Firebase 권한 오류 처리 함수
         function handlePermissionError(error) {
             console.error("Firebase 권한 오류 상세:", error);
             if (error.code === 'permission-denied' || (error.message && error.message.includes('Missing or insufficient permissions'))) {
-                errorBanner.classList.remove('hidden'); // 권한 오류 안내창 표시
+                errorBanner.classList.remove('hidden'); 
                 updateSyncUI("⚠️ 권한 오류 (규칙 확인 필요)");
             } else {
                 updateSyncUI("⚠️ 서버 연결 오류");
@@ -200,7 +210,6 @@ service cloud.firestore {
         }
 
         try {
-            // 사용자 제공 Firebase 설정
             const firebaseConfig = {
                 apiKey: "AIzaSyAKz0PWw_M6vZu0fD2WvucAER-yiYNvYUg",
                 authDomain: "academic-e3e71.firebaseapp.com",
@@ -219,28 +228,70 @@ service cloud.firestore {
             updateSyncUI("⚠️ 로컬 전용 모드");
         }
 
+        // 입력창용: 화면 표시를 무조건 'YY.MM.DD.' 형식으로 통일시키는 강력한 포맷터
+        function formatToDotDate(str) {
+            if (!str) return "";
+            return str.split(',').map(s => s.trim()).filter(s => s !== '').map(d => {
+                const cleanStr = d.replace(/[^0-9]/g, '');
+                if (cleanStr.length === 8) {
+                    return `${cleanStr.substring(2, 4)}.${cleanStr.substring(4, 6)}.${cleanStr.substring(6, 8)}.`;
+                } else if (cleanStr.length === 6) {
+                    return `${cleanStr.substring(0, 2)}.${cleanStr.substring(2, 4)}.${cleanStr.substring(4, 6)}.`;
+                }
+                return d;
+            }).join(', ');
+        }
+
+        // 내부 로직용 4자리 연도 변환 함수 (사용자가 26을 입력해도 2026으로 내부 변환)
+        function getInternalYear() {
+            let val = parseInt(document.getElementById('baseYear').value);
+            if (isNaN(val)) return 2026;
+            return val < 100 ? 2000 + val : val;
+        }
+
+        // 연도 변경 시, 해당 연도에 맞는 기본값 템플릿을 생성해주는 함수 (이전 데이터 잔류 방지 및 윤년 반영)
+        function setDefaultsForYear(fullYear) {
+            const shortY1 = String(fullYear).substring(2);
+            const shortY2 = String(fullYear + 1).substring(2);
+            // 윤년 여부를 동적으로 파악하여 2월 마지막 날짜 가져오기
+            const febDays = new Date(fullYear + 1, 2, 0).getDate(); 
+            
+            document.getElementById('summerStart').value = `${shortY1}.07.21.`;
+            document.getElementById('summerEnd').value = `${shortY1}.08.31.`;
+            document.getElementById('winterStart').value = `${shortY1}.12.19.`;
+            document.getElementById('winterEnd').value = `${shortY2}.01.24.`;
+            document.getElementById('yearEndStart').value = `${shortY2}.02.06.`;
+            document.getElementById('yearEndEnd').value = `${shortY2}.02.${febDays}.`; // 동적 윤년 반영
+            document.getElementById('discretionaryHolidays').value = `${shortY1}.05.04.`;
+            document.getElementById('floatingHolidays').value = "";
+            document.getElementById('enableLaborDay').checked = false;
+        }
+
         // 데이터 구독 (Read)
-        function subscribeToYearData(year) {
+        function subscribeToYearData(fullYear) {
             if (!currentUser) return;
             if (unsubscribeSnapshot) unsubscribeSnapshot();
 
             updateSyncUI("데이터 불러오는 중...", true);
-            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'academic_years', String(year));
+            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'academic_years', String(fullYear));
             
             unsubscribeSnapshot = onSnapshot(docRef, (docSnap) => {
-                errorBanner.classList.add('hidden'); // 성공 시 에러 배너 숨김
+                errorBanner.classList.add('hidden'); 
                 if (docSnap.exists()) {
                     const data = docSnap.data();
-                    document.getElementById('summerStart').value = data.summerStart || "";
-                    document.getElementById('summerEnd').value = data.summerEnd || "";
-                    document.getElementById('winterStart').value = data.winterStart || "";
-                    document.getElementById('winterEnd').value = data.winterEnd || "";
-                    document.getElementById('yearEndStart').value = data.yearEndStart || "";
-                    document.getElementById('yearEndEnd').value = data.yearEndEnd || "";
-                    document.getElementById('discretionaryHolidays').value = data.discretionaryHolidays || "";
-                    document.getElementById('floatingHolidays').value = data.floatingHolidays || "";
+                    document.getElementById('summerStart').value = data.summerStart ? formatToDotDate(data.summerStart) : "";
+                    document.getElementById('summerEnd').value = data.summerEnd ? formatToDotDate(data.summerEnd) : "";
+                    document.getElementById('winterStart').value = data.winterStart ? formatToDotDate(data.winterStart) : "";
+                    document.getElementById('winterEnd').value = data.winterEnd ? formatToDotDate(data.winterEnd) : "";
+                    document.getElementById('yearEndStart').value = data.yearEndStart ? formatToDotDate(data.yearEndStart) : "";
+                    document.getElementById('yearEndEnd').value = data.yearEndEnd ? formatToDotDate(data.yearEndEnd) : "";
+                    document.getElementById('discretionaryHolidays').value = data.discretionaryHolidays ? formatToDotDate(data.discretionaryHolidays) : "";
+                    document.getElementById('floatingHolidays').value = data.floatingHolidays ? formatToDotDate(data.floatingHolidays) : "";
+                    document.getElementById('enableLaborDay').checked = data.enableLaborDay || false;
                     updateSyncUI("☁️ 클라우드 동기화됨");
                 } else {
+                    // 클라우드에 해당 연도의 데이터가 없을 경우 기본값으로 덮어쓰고 저장
+                    setDefaultsForYear(fullYear);
                     saveDataToCloud(); 
                 }
                 calculateAll();
@@ -252,7 +303,7 @@ service cloud.firestore {
         // 데이터 저장 (Write)
         function saveDataToCloud() {
             if (!currentUser) return;
-            const year = document.getElementById('baseYear').value;
+            const fullYear = getInternalYear();
             
             const dataToSave = {
                 summerStart: document.getElementById('summerStart').value,
@@ -263,11 +314,12 @@ service cloud.firestore {
                 yearEndEnd: document.getElementById('yearEndEnd').value,
                 discretionaryHolidays: document.getElementById('discretionaryHolidays').value,
                 floatingHolidays: document.getElementById('floatingHolidays').value,
+                enableLaborDay: document.getElementById('enableLaborDay').checked,
                 lastUpdated: new Date().toISOString()
             };
 
             updateSyncUI("저장 중...", true);
-            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'academic_years', String(year));
+            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'academic_years', String(fullYear));
             
             setDoc(docRef, dataToSave, { merge: true })
                 .then(() => {
@@ -280,11 +332,23 @@ service cloud.firestore {
         }
 
         window.handleInputChange = function(isYearChange = false) {
-            calculateAll();
+            // 사용자가 어떤 형식으로 입력하든 다른 곳을 클릭하면 즉시 YY.MM.DD. 로 화면 강제 포맷팅
+            const inputsToFormat = ['summerStart', 'summerEnd', 'winterStart', 'winterEnd', 'yearEndStart', 'yearEndEnd', 'discretionaryHolidays', 'floatingHolidays'];
+            inputsToFormat.forEach(id => {
+                const el = document.getElementById(id);
+                if (el && el.value) {
+                    el.value = formatToDotDate(el.value);
+                }
+            });
+
             if (isYearChange) {
-                const year = document.getElementById('baseYear').value;
-                subscribeToYearData(year);
+                const fullYear = getInternalYear();
+                // 연도 변경 시 우선 임시로 해당 연도 기본 템플릿 세팅 (클라우드 응답 전 화면 깜빡임 방지)
+                setDefaultsForYear(fullYear);
+                calculateAll();
+                subscribeToYearData(fullYear);
             } else {
+                calculateAll();
                 saveDataToCloud();
             }
         };
@@ -305,7 +369,7 @@ service cloud.firestore {
         const lunarAndElectionDB = {
             2024: [
                 { date: "2024-02-09", name: "설연휴" }, { date: "2024-02-10", name: "설날" }, { date: "2024-02-11", name: "설연휴" }, { date: "2024-02-12", name: "대체공휴일(설날)" },
-                { date: "2024-04-10", name: "국회의원선거" }, { date: "2024-05-15", name: "부처님오신날" },
+                { date: "2024-05-15", name: "부처님오신날" },
                 { date: "2024-09-16", name: "추석연휴" }, { date: "2024-09-17", name: "추석" }, { date: "2024-09-18", name: "추석연휴" }
             ],
             2025: [
@@ -315,17 +379,17 @@ service cloud.firestore {
             ],
             2026: [
                 { date: "2026-02-16", name: "설연휴" }, { date: "2026-02-17", name: "설날" }, { date: "2026-02-18", name: "설연휴" },
-                { date: "2026-05-24", name: "부처님오신날" }, { date: "2026-05-25", name: "대체공휴일(부처님오신날)" }, { date: "2026-06-03", name: "지방선거일" },
+                { date: "2026-05-24", name: "부처님오신날" }, { date: "2026-05-25", name: "대체공휴일(부처님오신날)" },
                 { date: "2026-09-24", name: "추석연휴" }, { date: "2026-09-25", name: "추석" }, { date: "2026-09-26", name: "추석연휴" }
             ],
             2027: [
                 { date: "2027-02-06", name: "설연휴" }, { date: "2027-02-07", name: "설날" }, { date: "2027-02-08", name: "설연휴" }, { date: "2027-02-09", name: "대체공휴일(설날)" },
-                { date: "2027-03-03", name: "대통령선거" }, { date: "2027-05-13", name: "부처님오신날" },
+                { date: "2027-05-13", name: "부처님오신날" },
                 { date: "2027-09-14", name: "추석연휴" }, { date: "2027-09-15", name: "추석" }, { date: "2027-09-16", name: "추석연휴" }
             ],
             2028: [
                 { date: "2028-01-26", name: "설연휴" }, { date: "2028-01-27", name: "설날" }, { date: "2028-01-28", name: "설연휴" },
-                { date: "2028-04-12", name: "국회의원선거" }, { date: "2028-05-02", name: "부처님오신날" },
+                { date: "2028-05-02", name: "부처님오신날" },
                 { date: "2028-10-02", name: "추석연휴" }, { date: "2028-10-03", name: "추석" }, { date: "2028-10-04", name: "추석연휴" }, { date: "2028-10-05", name: "대체공휴일(추석)" }
             ],
             2029: [
@@ -335,7 +399,7 @@ service cloud.firestore {
             ],
             2030: [
                 { date: "2030-02-02", name: "설연휴" }, { date: "2030-02-03", name: "설날" }, { date: "2030-02-04", name: "설연휴" }, { date: "2030-02-05", name: "대체공휴일(설날)" },
-                { date: "2030-05-09", name: "부처님오신날" }, { date: "2030-06-12", name: "지방선거일" },
+                { date: "2030-05-09", name: "부처님오신날" },
                 { date: "2030-09-11", name: "추석연휴" }, { date: "2030-09-12", name: "추석" }, { date: "2030-09-13", name: "추석연휴" }
             ],
             2031: [
@@ -350,7 +414,7 @@ service cloud.firestore {
             ]
         };
 
-        function getSolarHolidays(year) {
+        function getSolarHolidays(fullYear, enableLaborDay) {
             let holidays = [];
             
             const rules = [
@@ -364,11 +428,12 @@ service cloud.firestore {
                 { m: 12, d: 25, name: "성탄절", sub: true }
             ];
 
-            const yearsToCalculate = [year, year + 1];
+            const yearsToCalculate = [fullYear, fullYear + 1];
 
             yearsToCalculate.forEach(y => {
                 let currentRules = [...rules];
                 if (y >= 2026) currentRules.push({ m: 7, d: 17, name: "제헌절", sub: true });
+                if (enableLaborDay) currentRules.push({ m: 5, d: 1, name: "노동절", sub: true });
 
                 currentRules.forEach(rule => {
                     const dateStr = `${y}-${String(rule.m).padStart(2, '0')}-${String(rule.d).padStart(2, '0')}`;
@@ -395,38 +460,60 @@ service cloud.firestore {
         }
 
         window.calculateAll = function() {
-            const year = parseInt(document.getElementById('baseYear').value);
-            const summerStart = document.getElementById('summerStart').value;
-            const summerEnd = document.getElementById('summerEnd').value;
-            const winterStart = document.getElementById('winterStart').value;
-            const winterEnd = document.getElementById('winterEnd').value;
-            const yearEndStart = document.getElementById('yearEndStart').value;
-            const yearEndEnd = document.getElementById('yearEndEnd').value;
+            const displayYear = document.getElementById('baseYear').value;
+            const fullYear = getInternalYear(); 
             
-            const floating = document.getElementById('floatingHolidays').value.split(',').map(d => d.trim()).filter(d => d);
-            const discretionary = document.getElementById('discretionaryHolidays').value.split(',').map(d => d.trim()).filter(d => d);
+            // 계산 로직용: 어떠한 입력도 YYYY-MM-DD로 정확히 변환해주는 함수
+            const normalizeDateForCalc = (dStr) => {
+                if (!dStr) return "";
+                let str = dStr.trim();
+                const cleanStr = str.replace(/[^0-9]/g, '');
+                if (cleanStr.length === 8) {
+                    return `${cleanStr.substring(0, 4)}-${cleanStr.substring(4, 6)}-${cleanStr.substring(6, 8)}`;
+                }
+                if (cleanStr.length === 6) {
+                    return `20${cleanStr.substring(0, 2)}-${cleanStr.substring(2, 4)}-${cleanStr.substring(4, 6)}`;
+                }
+                return str; 
+            };
+
+            const summerStart = normalizeDateForCalc(document.getElementById('summerStart').value);
+            const summerEnd = normalizeDateForCalc(document.getElementById('summerEnd').value);
+            const winterStart = normalizeDateForCalc(document.getElementById('winterStart').value);
+            const winterEnd = normalizeDateForCalc(document.getElementById('winterEnd').value);
+            const yearEndStart = normalizeDateForCalc(document.getElementById('yearEndStart').value);
+            const yearEndEnd = normalizeDateForCalc(document.getElementById('yearEndEnd').value);
+
+            const floating = document.getElementById('floatingHolidays').value.split(',').map(normalizeDateForCalc).filter(d => d);
+            const discretionary = document.getElementById('discretionaryHolidays').value.split(',').map(normalizeDateForCalc).filter(d => d);
+            const enableLaborDay = document.getElementById('enableLaborDay').checked;
             
-            const autoHolidays = getSolarHolidays(year);
-            const publicHolidaysList = [...autoHolidays];
+            const autoHolidays = getSolarHolidays(fullYear, enableLaborDay);
+            let publicHolidaysList = [...autoHolidays];
             floating.forEach(dStr => {
-                publicHolidaysList.push({ date: dStr, name: "임시공휴일" });
+                publicHolidaysList.push({ date: dStr, name: "임시/선거공휴일" });
             });
 
-            // 우측 자동 공휴일 목록 업데이트
-            document.getElementById('displayYearText').innerText = year;
+            // 해당 학년도 범위(3월 ~ 익년 2월 말일) 밖의 날짜 엄격히 필터링 (대체공휴일 중복 표출 방지)
+            const startDate = `${fullYear}-03-01`;
+            const endDay = new Date(fullYear + 1, 2, 0).getDate(); // 윤년 동적 반영된 2월의 마지막 날짜
+            const endDate = `${fullYear + 1}-02-${endDay}`;
+            
+            publicHolidaysList = publicHolidaysList.filter(h => h.date >= startDate && h.date <= endDate);
+
+            // 우측 자동 공휴일 목록 업데이트 (화면 표시용)
+            document.getElementById('displayYearText').innerText = displayYear;
             const listContainer = document.getElementById('holidayList');
             listContainer.innerHTML = '';
-            const startDate = `${year}-03-01`;
-            const endDate = `${year + 1}-02-29`;
             
-            const filteredHolidays = autoHolidays
-                .filter(h => h.date >= startDate && h.date <= endDate)
-                .sort((a, b) => a.date.localeCompare(b.date));
+            const sortedHolidays = publicHolidaysList.sort((a, b) => a.date.localeCompare(b.date));
 
-            filteredHolidays.forEach(h => {
+            sortedHolidays.forEach(h => {
                 const item = document.createElement('div');
                 item.className = "flex justify-between items-center border-b border-slate-50 py-1";
-                item.innerHTML = `<span class="font-medium tracking-tight text-slate-600">${h.date}</span> <span class="text-slate-500 truncate ml-2">${h.name}</span>`;
+                const isSpecial = h.name.includes("노동절") || h.name.includes("임시");
+                const shortDateDot = `${h.date.substring(2).replace(/-/g, '.')}.`; 
+                item.innerHTML = `<span class="font-medium tracking-tight ${isSpecial ? 'text-blue-600' : 'text-slate-600'}">${shortDateDot}</span> <span class="text-slate-500 truncate ml-2">${h.name}</span>`;
                 listContainer.appendChild(item);
             });
 
@@ -458,7 +545,7 @@ service cloud.firestore {
 
             const processSemester = (months, key) => {
                 months.forEach(m => {
-                    const currYear = (m <= 2) ? year + 1 : year;
+                    const currYear = (m <= 2) ? fullYear + 1 : fullYear;
                     const daysInMonth = new Date(currYear, m, 0).getDate();
                     
                     let sun_out = 0, sun_in = 0;
@@ -466,6 +553,7 @@ service cloud.firestore {
                     let hol_out = 0, hol_in = 0;
                     let disc_out = 0, disc_in = 0;
                     let vac_out = 0;
+                    let totalOffInMonth = 0;
 
                     for (let d = 1; d <= daysInMonth; d++) {
                         const dateStr = `${currYear}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
@@ -480,34 +568,33 @@ service cloud.firestore {
                         const isSun = (day === 0);
                         const isSat = (day === 6);
                         
+                        // 휴업일 속성 중 하나라도 참이면 실제 쉬는 날(totalOffInMonth)로 1만 증가 (중복 방지)
+                        let isOff = isVac || isSun || isSat || isHoliday || isDisc;
+                        if (isOff) totalOffInMonth++;
+                        
+                        // 카테고리별 분배 로직 (우선순위: 방학 > 주말 > 공휴일 > 재량일)
                         if (isVac) {
                             vac_out++;
-                            if (isSun) {
-                                sun_in++;
-                            } else if (isSat) {
-                                sat_in++;
-                            } else {
-                                if (isHoliday) hol_in++;
-                                if (isDisc) disc_in++;
-                            }
-                        } else {
-                            if (isSun) {
-                                sun_out++;
-                                if (isHoliday || isDisc) sun_in++;
-                            } else if (isSat) {
-                                sat_out++;
-                                if (isHoliday || isDisc) sat_in++;
-                            } else {
-                                if (isHoliday) {
-                                    hol_out++;
-                                } else if (isDisc) {
-                                    disc_out++;
-                                }
-                            }
+                            if (isSun) sun_in++;
+                            if (isSat) sat_in++;
+                            if (isHoliday && !isSun && !isSat) hol_in++; // 방학 중 평일 공휴일
+                            if (isDisc && !isSun && !isSat) disc_in++;    // 방학 중 평일 재량일
+                        } else if (isSun) {
+                            sun_out++;
+                            if (isHoliday) hol_in++;
+                            if (isDisc) disc_in++;
+                        } else if (isSat) {
+                            sat_out++;
+                            if (isHoliday) hol_in++; // 토요일 공휴일 겹침 반영
+                            if (isDisc) disc_in++;
+                        } else if (isHoliday) {
+                            hol_out++;
+                            if (isDisc) disc_in++;
+                        } else if (isDisc) {
+                            disc_out++;
                         }
                     }
 
-                    const totalOffInMonth = vac_out + sun_out + sat_out + hol_out + disc_out;
                     const schoolDays = daysInMonth - totalOffInMonth;
 
                     dataRows.totalDays[key].push(daysInMonth);
@@ -594,8 +681,8 @@ service cloud.firestore {
         window.exportToExcel = function() {
             const table = document.getElementById('summaryTable');
             const wb = XLSX.utils.table_to_book(table, { sheet: "학사일정통계" });
-            const year = document.getElementById('baseYear').value;
-            XLSX.writeFile(wb, `${year}학년도_학사일정_자동산출.xlsx`);
+            const displayYear = document.getElementById('baseYear').value;
+            XLSX.writeFile(wb, `${displayYear}학년도_학사일정_자동산출.xlsx`);
         };
 
         window.onload = async () => {
@@ -603,12 +690,11 @@ service cloud.firestore {
             
             if (auth) {
                 try {
-                    await signInAnonymously(auth); // 익명 로그인 필수 진행
+                    await signInAnonymously(auth);
                     onAuthStateChanged(auth, (user) => {
                         if (user) {
                             currentUser = user;
-                            const initialYear = document.getElementById('baseYear').value;
-                            subscribeToYearData(initialYear);
+                            subscribeToYearData(getInternalYear());
                         } else {
                             currentUser = null;
                         }
