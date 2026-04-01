@@ -217,7 +217,6 @@ service cloud.firestore {
             updateSyncUI("⚠️ 로컬 전용 모드");
         }
 
-        // 입력창용: 화면 표시를 무조건 'YY.MM.DD.' 형식으로 통일시키는 강력한 포맷터
         function formatToDotDate(str) {
             if (!str) return "";
             return str.split(',').map(s => s.trim()).filter(s => s !== '').map(d => {
@@ -237,7 +236,6 @@ service cloud.firestore {
             return val < 100 ? 2000 + val : val;
         }
 
-        // 연도 변경 시 기본값 세팅 및 알려진 선거일 자동 주입 기능
         function setDefaultsForYear(fullYear) {
             const shortY1 = String(fullYear).substring(2);
             const shortY2 = String(fullYear + 1).substring(2);
@@ -251,15 +249,13 @@ service cloud.firestore {
             document.getElementById('yearEndEnd').value = `${shortY2}.02.${febDays}.`; 
             document.getElementById('discretionaryHolidays').value = `${shortY1}.05.04.`;
             
-            // 기존 데이터가 비어있을 경우, 해당 연도의 알려진 선거일을 자동으로 세팅
             let defaultFloating = "";
-            if (fullYear === 2026) defaultFloating = "26.06.03."; // 제9회 지방선거
-            if (fullYear === 2030) defaultFloating = "30.03.27."; // 제22대 대선 (예정)
+            if (fullYear === 2026) defaultFloating = "26.06.03.";
+            if (fullYear === 2030) defaultFloating = "30.03.27.";
             
             document.getElementById('floatingHolidays').value = defaultFloating;
         }
 
-        // 데이터 구독 (Read)
         function subscribeToYearData(fullYear) {
             if (!currentUser) return;
             if (unsubscribeSnapshot) unsubscribeSnapshot();
@@ -279,7 +275,6 @@ service cloud.firestore {
                     document.getElementById('yearEndEnd').value = data.yearEndEnd ? formatToDotDate(data.yearEndEnd) : "";
                     document.getElementById('discretionaryHolidays').value = data.discretionaryHolidays ? formatToDotDate(data.discretionaryHolidays) : "";
                     
-                    // 과거에 빈 상태로 저장되었던 데이터라도 26년, 30년 선거일은 UI 상에서 강제 채워줌 (사용자 편의)
                     let floating = data.floatingHolidays ? formatToDotDate(data.floatingHolidays) : "";
                     if (!floating && fullYear === 2026) floating = "26.06.03.";
                     if (!floating && fullYear === 2030) floating = "30.03.27.";
@@ -296,7 +291,6 @@ service cloud.firestore {
             });
         }
 
-        // 데이터 저장 (Write)
         function saveDataToCloud() {
             if (!currentUser) return;
             const fullYear = getInternalYear();
@@ -346,16 +340,15 @@ service cloud.firestore {
             }
         };
 
-        // ==========================================
-        // 기존 달력 계산 로직
-        // ==========================================
         const months1 = [3, 4, 5, 6, 7, 8];
         const months2 = [9, 10, 11, 12, 1, 2];
 
+        // 엑셀에서 '3(1)'을 음수나 날짜로 자동 변환하는 것을 막기 위해
+        // 문자열 앞에 보이지 않는 공백(\u200B)을 추가하여 순수 텍스트로 인식되도록 강제함.
         const formatCount = (outCount, inCount) => {
             if (outCount === 0 && inCount === 0) return "0";
-            if (outCount === 0 && inCount > 0) return `(${inCount})`;
-            if (outCount > 0 && inCount > 0) return `${outCount}(${inCount})`;
+            if (outCount === 0 && inCount > 0) return `\u200B(${inCount})`;
+            if (outCount > 0 && inCount > 0) return `\u200B${outCount}(${inCount})`;
             return `${outCount}`;
         };
 
@@ -667,7 +660,6 @@ service cloud.firestore {
 
         window.exportToExcel = function() {
             const table = document.getElementById('summaryTable');
-            // raw: true 옵션을 추가하여 엑셀의 마음대로 서식 변환(음수, 날짜 등)을 원천 차단합니다.
             const wb = XLSX.utils.table_to_book(table, { sheet: "학사일정통계", raw: true });
             const displayYear = document.getElementById('baseYear').value;
             XLSX.writeFile(wb, `${displayYear}학년도_학사일정_자동산출.xlsx`);
