@@ -126,36 +126,25 @@ service cloud.firestore {
                 </div>
 
                 <!-- 수동 입력 영역 -->
-                <div class="space-y-4 flex flex-col justify-between">
-                    <div>
-                        <div class="space-y-2 mb-4">
-                            <h3 class="font-semibold text-red-700 border-b border-red-200 pb-1">🏫 학교장 재량휴업일</h3>
-                            <label class="block text-xs text-slate-500 mb-1 h-8 leading-tight">
-                                개교기념일 등 학교 자체 휴업일<br>(쉼표 구분: YY.MM.DD.)
-                            </label>
-                            <textarea id="discretionaryHolidays" onchange="handleInputChange()" 
-                                      class="w-full border p-2 text-xs rounded-lg h-20 focus:ring-2 focus:ring-red-300 outline-none" 
-                                      placeholder="예: 26.05.04.">26.05.04.</textarea>
-                        </div>
-
-                        <div class="space-y-2">
-                            <h3 class="font-semibold text-purple-700 border-b border-purple-200 pb-1">⚡ 임시공휴일 및 선거일</h3>
-                            <label class="block text-xs text-slate-500 mb-1 h-8 leading-tight">
-                                선거일, 국가 지정 임시 휴일 등<br>(쉼표 구분: YY.MM.DD.)
-                            </label>
-                            <textarea id="floatingHolidays" onchange="handleInputChange()" 
-                                      class="w-full border p-2 text-xs rounded-lg h-20 focus:ring-2 focus:ring-purple-300 outline-none" 
-                                      placeholder="예: 26.06.03."></textarea>
-                        </div>
+                <div class="space-y-4 flex flex-col">
+                    <div class="space-y-2 mb-4">
+                        <h3 class="font-semibold text-red-700 border-b border-red-200 pb-1">🏫 학교장 재량휴업일</h3>
+                        <label class="block text-xs text-slate-500 mb-1 h-8 leading-tight">
+                            개교기념일 등 학교 자체 휴업일<br>(쉼표 구분: YY.MM.DD.)
+                        </label>
+                        <textarea id="discretionaryHolidays" onchange="handleInputChange()" 
+                                  class="w-full border p-2 text-xs rounded-lg h-20 focus:ring-2 focus:ring-red-300 outline-none" 
+                                  placeholder="예: 26.05.04.">26.05.04.</textarea>
                     </div>
 
-                    <!-- 노동절(5/1) 법정공휴일 자동 적용 토글 -->
-                    <div class="bg-blue-50/50 border border-blue-100 p-3 rounded-lg flex items-start gap-3 mt-2 shadow-sm transition-colors hover:bg-blue-50">
-                        <input type="checkbox" id="enableLaborDay" onchange="handleInputChange()" class="mt-0.5 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer">
-                        <div>
-                            <label for="enableLaborDay" class="text-sm font-bold text-blue-800 cursor-pointer select-none block">5월 1일 노동절 법정공휴일 적용</label>
-                            <p class="text-xs text-slate-500 mt-1 leading-relaxed">추후 관련 법안 통과 시 체크하시면 매년 5월 1일이 달력에 자동 반영됩니다. (대체공휴일 포함)</p>
-                        </div>
+                    <div class="space-y-2">
+                        <h3 class="font-semibold text-purple-700 border-b border-purple-200 pb-1">⚡ 임시공휴일 및 선거일</h3>
+                        <label class="block text-xs text-slate-500 mb-1 h-8 leading-tight">
+                            선거일, 국가 지정 임시 휴일 등<br>(쉼표 구분: YY.MM.DD.)
+                        </label>
+                        <textarea id="floatingHolidays" onchange="handleInputChange()" 
+                                  class="w-full border p-2 text-xs rounded-lg h-20 focus:ring-2 focus:ring-purple-300 outline-none" 
+                                  placeholder="예: 26.06.03."></textarea>
                     </div>
                 </div>
 
@@ -268,7 +257,6 @@ service cloud.firestore {
             if (fullYear === 2030) defaultFloating = "30.03.27."; // 제22대 대선 (예정)
             
             document.getElementById('floatingHolidays').value = defaultFloating;
-            document.getElementById('enableLaborDay').checked = false;
         }
 
         // 데이터 구독 (Read)
@@ -297,7 +285,6 @@ service cloud.firestore {
                     if (!floating && fullYear === 2030) floating = "30.03.27.";
                     document.getElementById('floatingHolidays').value = floating;
 
-                    document.getElementById('enableLaborDay').checked = data.enableLaborDay || false;
                     updateSyncUI("☁️ 클라우드 동기화됨");
                 } else {
                     setDefaultsForYear(fullYear);
@@ -323,7 +310,6 @@ service cloud.firestore {
                 yearEndEnd: document.getElementById('yearEndEnd').value,
                 discretionaryHolidays: document.getElementById('discretionaryHolidays').value,
                 floatingHolidays: document.getElementById('floatingHolidays').value,
-                enableLaborDay: document.getElementById('enableLaborDay').checked,
                 lastUpdated: new Date().toISOString()
             };
 
@@ -421,12 +407,13 @@ service cloud.firestore {
             ]
         };
 
-        function getSolarHolidays(fullYear, enableLaborDay) {
+        function getSolarHolidays(fullYear) {
             let holidays = [];
             
             const rules = [
                 { m: 1, d: 1, name: "신정", sub: false },
                 { m: 3, d: 1, name: "삼일절", sub: true },
+                { m: 5, d: 1, name: "노동절", sub: true },
                 { m: 5, d: 5, name: "어린이날", sub: true },
                 { m: 6, d: 6, name: "현충일", sub: false },
                 { m: 8, d: 15, name: "광복절", sub: true },
@@ -440,7 +427,6 @@ service cloud.firestore {
             yearsToCalculate.forEach(y => {
                 let currentRules = [...rules];
                 if (y >= 2026) currentRules.push({ m: 7, d: 17, name: "제헌절", sub: true });
-                if (enableLaborDay) currentRules.push({ m: 5, d: 1, name: "노동절", sub: true });
 
                 currentRules.forEach(rule => {
                     const dateStr = `${y}-${String(rule.m).padStart(2, '0')}-${String(rule.d).padStart(2, '0')}`;
@@ -492,9 +478,8 @@ service cloud.firestore {
 
             const floating = document.getElementById('floatingHolidays').value.split(',').map(normalizeDateForCalc).filter(d => d);
             const discretionary = document.getElementById('discretionaryHolidays').value.split(',').map(normalizeDateForCalc).filter(d => d);
-            const enableLaborDay = document.getElementById('enableLaborDay').checked;
             
-            const autoHolidays = getSolarHolidays(fullYear, enableLaborDay);
+            const autoHolidays = getSolarHolidays(fullYear);
             let publicHolidaysList = [...autoHolidays];
             floating.forEach(dStr => {
                 publicHolidaysList.push({ date: dStr, name: "임시/선거공휴일" });
@@ -682,7 +667,8 @@ service cloud.firestore {
 
         window.exportToExcel = function() {
             const table = document.getElementById('summaryTable');
-            const wb = XLSX.utils.table_to_book(table, { sheet: "학사일정통계" });
+            // raw: true 옵션을 추가하여 엑셀의 마음대로 서식 변환(음수, 날짜 등)을 원천 차단합니다.
+            const wb = XLSX.utils.table_to_book(table, { sheet: "학사일정통계", raw: true });
             const displayYear = document.getElementById('baseYear').value;
             XLSX.writeFile(wb, `${displayYear}학년도_학사일정_자동산출.xlsx`);
         };
